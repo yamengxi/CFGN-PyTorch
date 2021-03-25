@@ -116,21 +116,21 @@ class PatchBasedNonlocalModule(nn.Module):
 
         return out + x
 
-        # return out
 
-# class JointModule(nn.Module):
-#     def __init__(self, in_channels=128):
-#         super(JointModule, self).__init__()
-#         # self.patch_based_nonlocal_module = PatchBasedNonlocalModule(in_channels=in_channels)
-#         self.context_guided_modules = []
-#         for i in range(4):
-#             self.context_guided_modules.append(ContextGuidedModule(in_channels=in_channels))
-#         self.context_guided_modules = nn.Sequential(*self.context_guided_modules)
+class JointModule(nn.Module):
+    def __init__(self, in_channels=128):
+        super(JointModule, self).__init__()
+        self.context_guided_modules = []
+        for i in range(4):
+            self.context_guided_modules.append(ContextGuidedModule(in_channels=in_channels))
+        self.context_guided_modules = nn.Sequential(*self.context_guided_modules)
+        self.final_conv = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, 1, 1), nn.ReLU())
 
-#     def forward(self, x):
-#         # out = self.patch_based_nonlocal_module(x)
-#         out = self.context_guided_modules(x)
-#         return out + x
+    def forward(self, x):
+        out = self.context_guided_modules(x)
+        out = torch.cat([x, out], 1)
+        out = self.final_conv(out)
+        return out
 
 
 class MainBlock(nn.Module):
@@ -138,7 +138,7 @@ class MainBlock(nn.Module):
         super(MainBlock, self).__init__()
         self.blocks = []
         for i in range(num_blocks):
-            self.blocks.append(ContextGuidedModule(in_channels))
+            self.blocks.append(JointModule(in_channels))
         self.blocks.append(PatchBasedNonlocalModule(in_channels=in_channels))
         self.blocks = nn.Sequential(*self.blocks)
         self.final_conv = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, 1, 1), nn.ReLU())
@@ -148,10 +148,6 @@ class MainBlock(nn.Module):
         out = self.blocks(x)
         out = torch.cat([x, out], 1)
         out = self.final_conv(out)
-        # now_sum = x
-        # for block in self.blocks:
-        #     x = block(x) # + now_sum
-        #     # now_sum = now_sum + x
         out = self.upsampler(out)
         return out
 
@@ -362,7 +358,7 @@ if __name__ == '__main__':
     args.rgb_range = 255
     args.n_colors = 3
     args.n_feats = 128
-    args.n_resblocks = 24
+    args.n_resblocks = 6
     args.n_resgroups = 2
     args.direct_up = False
 

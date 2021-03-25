@@ -54,4 +54,6 @@ python main.py --model EDSR --scale 2 --patch_size 96 --save edsr_baseline_x2 --
 # RCAN_BIX8_G10R20P48, input=48x48, output=384x384
 #python main.py --template RCAN --save RCAN_BIX8_G10R20P48 --scale 8 --reset --save_results --patch_size 384 --pre_train ../experiment/model/RCAN_BIX2.pt
 
-CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R24 --n_resgroups 2 --n_resblocks 24 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 7 --patch_size 192 --save_results --lr 0.0001 --decay 150-300 --epochs 0 &
+# CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R24 --n_resgroups 2 --n_resblocks 24 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 7 --patch_size 192 --save_results --lr 0.0001 --decay 150-300 --epochs 0 &
+
+# CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R5 --n_resgroups 2 --n_resblocks 5 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 8 --patch_size 192 --save_results --lr 0.0001 --decay 200-400 --epochs 0 &
