@@ -73,11 +73,10 @@ class SRData(data.Dataset):
         for f in names_hr:
             filename, _ = os.path.splitext(os.path.basename(f))
             for si, s in enumerate(self.scale):
-                names_lr[si].append(os.path.join(
-                    self.dir_lr, 'X{}/{}x{}{}'.format(
-                        s, filename, s, self.ext[1]
-                    )
-                ))
+                file_path = os.path.join(self.dir_lr, 'X{}/{}x{}{}'.format(s, filename, s, self.ext[1]))
+                if not os.path.exists(file_path):
+                    file_path = os.path.join(self.dir_lr, 'X{}/{}_LRBI_x{}{}'.format(s, filename, s, self.ext[1]))
+                names_lr[si].append(file_path)
 
         return names_hr, names_lr
 

@@ -1,5 +1,5 @@
 # EDSR baseline model (x2) + JPEG augmentation
-python main.py --model EDSR --scale 2 --patch_size 96 --save edsr_baseline_x2 --reset
+# python main.py --model EDSR --scale 2 --patch_size 96 --save edsr_baseline_x2 --reset
 #python main.py --model EDSR --scale 2 --patch_size 96 --save edsr_baseline_x2 --reset --data_train DIV2K+DIV2K-Q75 --data_test DIV2K+DIV2K-Q75
 
 # EDSR baseline model (x3) - from EDSR baseline model (x2)
@@ -57,3 +57,18 @@ python main.py --model EDSR --scale 2 --patch_size 96 --save edsr_baseline_x2 --
 # CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R24 --n_resgroups 2 --n_resblocks 24 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 7 --patch_size 192 --save_results --lr 0.0001 --decay 150-300 --epochs 0 &
 
 # CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R5 --n_resgroups 2 --n_resblocks 5 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 8 --patch_size 192 --save_results --lr 0.0001 --decay 200-400 --epochs 0 &
+
+# test EDSR
+CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX2 --scale 2 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x2.pt --test_only --save_results
+CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX3 --scale 3 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x3.pt --test_only --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX4 --scale 4 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x4.pt --test_only --save_results
+
+
+# test RCAN
+CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX2 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 2 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX2.pt --test_only --save_results
+CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX3 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 3 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX3.pt --test_only --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX4 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 4 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX4.pt --test_only --save_results
+
+
+# test RDN
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model RDN --data_test Set5+Set14+B100+Urban100+Manga109 --save RDN_BIX4 --scale 4 --pre_train /home/yamengxi/models/RDN/RDN_BIX4.t7 --test_only --save_results
