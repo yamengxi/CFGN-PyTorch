@@ -39,7 +39,7 @@ parser.add_argument('--rgb_range', type=int, default=255,
                     help='maximum value of RGB')
 parser.add_argument('--n_colors', type=int, default=3,
                     help='number of color channels to use')
-parser.add_argument('--chop', action='store_true',
+parser.add_argument('--chop', action='store_true', default=True,
                     help='enable memory-efficient forward')
 parser.add_argument('--no_augment', action='store_true',
                     help='do not use data augmentation')

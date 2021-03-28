@@ -58,17 +58,40 @@
 
 # CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R5 --n_resgroups 2 --n_resblocks 5 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 8 --patch_size 192 --save_results --lr 0.0001 --decay 200-400 --epochs 0 &
 
-# test EDSR
-CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX2 --scale 2 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x2.pt --test_only --save_results
-CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX3 --scale 3 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x3.pt --test_only --save_results
+# test EDSR (EDSR-PyTorch)
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX2 --scale 2 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x2.pt --test_only --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX3 --scale 3 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x3.pt --test_only --save_results
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX4 --scale 4 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x4.pt --test_only --save_results
 
+# test DBPN (DBPN-PyTorch)
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 2 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset B100/LR_bicubic/X2     --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x2.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 2 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Manga109/LR_bicubic/X2 --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x2.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 2 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Set5/LR_bicubic/X2     --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x2.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 2 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Set14/LR_bicubic/X2    --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x2.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 2 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Urban100/LR_bicubic/X2 --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x2.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 4 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset B100/LR_bicubic/X4     --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x4.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 4 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Manga109/LR_bicubic/X4 --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x4.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 4 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Set5/LR_bicubic/X4     --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x4.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 4 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Set14/LR_bicubic/X4    --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x4.pth
+# CUDA_VISIBLE_DEVICES=2 python -u eval.py --upscale_factor 4 --input_dir /home/yamengxi/datasets_for_EDSR-PyTorch/benchmark/ --test_dataset Urban100/LR_bicubic/X4 --model_type DBPN --model /home/yamengxi/DBPN-Pytorch/models/DBPN_x4.pth
 
-# test RCAN
-CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX2 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 2 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX2.pt --test_only --save_results
-CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX3 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 3 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX3.pt --test_only --save_results
+# test RCAN (EDSR-PyTorch)
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX2 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 2 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX2.pt --test_only --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX3 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 3 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX3.pt --test_only --save_results
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --template RCAN --save RCAN_BIX4 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 4 --pre_train /home/yamengxi/models/RCAN/RCAN_BIX4.pt --test_only --save_results
 
 
-# test RDN
+# test RDN (no)
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model RDN --data_test Set5+Set14+B100+Urban100+Manga109 --save RDN_BIX4 --scale 4 --pre_train /home/yamengxi/models/RDN/RDN_BIX4.t7 --test_only --save_results
+
+# test SAN (EDSR-PyTorch)
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model SAN --save SAN_BIX2 --scale 2 --n_resgroups 20 --n_resblocks 10 --n_feats 64 --reset --chop --data_test Set5+B100+Urban100+Manga109 --pre_train /home/yamengxi/models/SAN/SAN_BI2X.pt --test_only --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model SAN --save SAN_BIX2 --scale 2 --n_resgroups 20 --n_resblocks 10 --n_feats 64 --reset --chop --data_test Set14 --pre_train /home/yamengxi/models/SAN/SAN_BI2X.pt --test_only --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model SAN --save SAN_BIX4 --scale 4 --n_resgroups 20 --n_resblocks 10 --n_feats 64 --reset --chop --data_test Set5+Set14+B100+Urban100+Manga109 --pre_train /home/yamengxi/models/SAN/SAN_BI4X.pt --test_only --save_results
+
+# test HAN (EDSR-PyTorch)
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model HAN --n_resblocks 20 --n_feats 64 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 2 --pre_train /home/yamengxi/models/HAN/HAN_BIX2.pt --test_only --save HAN_BIX2 --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model HAN --n_resblocks 20 --n_feats 64 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 3 --pre_train /home/yamengxi/models/HAN/HAN_BIX3.pt --test_only --save HAN_BIX3 --save_results
+# CUDA_VISIBLE_DEVICES=2 python -u main.py --model HAN --n_resblocks 20 --n_feats 64 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 4 --pre_train /home/yamengxi/models/HAN/HAN_BIX4.pt --test_only --save HAN_BIX4 --save_results
+
+

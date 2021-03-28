@@ -103,6 +103,8 @@ class Model(nn.Module):
             self.model.load_state_dict(load_from, strict=False)
 
     def forward_chop(self, *args, shave=10, min_size=160000):
+        # import pdb
+        # pdb.set_trace()
         scale = 1 if self.input_large else self.scale[self.idx_scale]
         n_GPUs = min(self.n_GPUs, 4)
         # height, width
@@ -142,10 +144,10 @@ class Model(nn.Module):
         h *= scale
         w *= scale
         top = slice(0, h//2)
-        bottom = slice(h - h//2, h)
+        bottom = slice(h - h//2 - (h & 1), h)
         bottom_r = slice(h//2 - h, None)
         left = slice(0, w//2)
-        right = slice(w - w//2, w)
+        right = slice(w - w//2 - (w & 1), w)
         right_r = slice(w//2 - w, None)
 
         # batch size, number of color channels
