@@ -58,6 +58,9 @@
 
 # CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R5 --n_resgroups 2 --n_resblocks 5 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 8 --patch_size 192 --save_results --lr 0.0001 --decay 200-400 --epochs 0 &
 
+CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R5 --n_resgroups 2 --n_resblocks 5 --n_feats 128 --direct_up False --reset --data_test Set5+Set14 --batch_size 6 --patch_size 192 --save_results --lr 0.0001 --decay 200-400 --epochs 0
+
+
 # test EDSR (EDSR-PyTorch)
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX2 --scale 2 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x2.pt --test_only --save_results
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model EDSR --data_test Set5+Set14+B100+Urban100+Manga109 --save EDSR_BIX3 --scale 3 --n_resblocks 32 --n_feats 256 --res_scale 0.1 --pre_train /home/yamengxi/models/EDSR/EDSR_x3.pt --test_only --save_results

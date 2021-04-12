@@ -6,120 +6,43 @@ import torch.nn.functional as F
 
 from model import common
 
-
 def make_model(args, parent=False):
     return CGSRN(args)
 
-
-class LocalFeatureExtractor(nn.Module):
-    def __init__(self, in_channels, act):
-        super(LocalFeatureExtractor, self).__init__()
-        kernel_size = 5
-        self.conv1x1 = nn.Sequential(nn.Conv2d(in_channels, in_channels, 1, 1, 0), act())
-        self.conv5x5 = nn.Sequential(nn.Conv2d(in_channels, in_channels, kernel_size, 1, (kernel_size - 1) // 2), act())
-    
-    def forward(self, x):
-        x = self.conv1x1(x)
-        x = self.conv5x5(x)
-        return x
-
-
-class SurroundingContextExtractor(nn.Module):
-    def __init__(self, in_channels, act):
-        super(SurroundingContextExtractor, self).__init__()
-        kernel_size = 5
-        dilation = 3
-        self.conv1x1 = nn.Sequential(nn.Conv2d(in_channels, in_channels, 1, 1, 0), act())
-        self.dconv5x5 = nn.Conv2d(in_channels, in_channels, kernel_size, 1, (kernel_size - 1) // 2 * dilation, dilation)
-    
-    def forward(self, x):
-        x = self.conv1x1(x)
-        x = self.dconv5x5(x)
-        return x
-
-
 class GlobalContextExtractor(nn.Module):
-    def __init__(self, in_channels, act):
+    def __init__(self, channel, reduction=16, act=nn.ReLU):
         super(GlobalContextExtractor, self).__init__()
-        reduction = 8
-        self.conv1x1_1 = nn.Sequential(nn.Conv2d(in_channels, in_channels, 1, 1, 0), act())
-        self.conv1x1_2 = nn.Sequential(nn.Conv2d(in_channels, in_channels, 1, 1, 0), act())
+        assert reduction >= 1 and channel >= reduction
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction), act(),
+            nn.Linear(channel // reduction, channel), nn.Sigmoid())
 
-        # feature channel downscale and upscale --> channel weight
-        self.conv_du = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels // reduction, 1, padding=0, bias=True),
-            act(),
-            nn.Conv2d(in_channels // reduction, in_channels, 1, padding=0, bias=True),
-            nn.Sigmoid()
-        )
+    def forward(self, x):
+        num_batch, num_channel = x.size()[:2]
+        y = self.avg_pool(x).view(num_batch, num_channel)
+        y = self.fc(y).view(num_batch, num_channel, 1, 1)
+        return x * y
+
+
+class ContextGuidedModule(nn.Module):
+    def __init__(self, in_channels=128, kernel_size=5, dilation=3, reduction=16, act=nn.ReLU, bn=nn.Identity):
+        super(ContextGuidedModule, self).__init__()
+        mid_channels = in_channels // 2
+        self.conv1x1 = nn.Sequential(nn.Conv2d(in_channels, mid_channels, 1, 1, 0), bn(mid_channels), act())
+        self.f_loc = nn.Conv2d(mid_channels, mid_channels, kernel_size, 1, (kernel_size - 1) // 2)
+        self.f_sur = nn.Conv2d(mid_channels, mid_channels, kernel_size, 1, (kernel_size - 1) // 2 * dilation, dilation)
+        self.act = act()
+        self.f_glo = GlobalContextExtractor(in_channels, reduction, act)
     
     def forward(self, x):
-        y = self.conv1x1_1(x)
-        y = self.avg_pool(y)
-        y = self.conv_du(y)
-
-        return self.conv1x1_2(x) * y
-
-
-class ContextGuidedModulev1(nn.Module):
-    def __init__(self, in_channels, act):
-        super(ContextGuidedModulev1, self).__init__()
-        self.conv3x3_1 = nn.Sequential(nn.Conv2d(in_channels, in_channels, 3, 1, 1), act())
-        self.conv3x3_2 = nn.Sequential(nn.Conv2d(in_channels * 2, in_channels, 3, 1, 1), act())
-        self.f_loc = LocalFeatureExtractor(in_channels, act)
-        self.f_sur = SurroundingContextExtractor(in_channels, act)
-        self.f_glo = GlobalContextExtractor(in_channels, act)
-        self.final_conv = nn.Conv2d(in_channels, in_channels, 3, 1, 1)
-    
-    def forward(self, x):
-        x0 = self.conv3x3_1(x)
+        x0 = self.conv1x1(x)
         loc = self.f_loc(x0)
         sur = self.f_sur(x0)
         joi_feat = torch.cat([loc, sur], 1)  # the joint feature
-        joi_feat = self.conv3x3_2(joi_feat)
+        joi_feat = self.act(joi_feat)
         out = self.f_glo(joi_feat)
-        return self.final_conv(out) + x
-
-
-class ContextGuidedModulev2(nn.Module):
-    def __init__(self, in_channels, act):
-        super(ContextGuidedModulev2, self).__init__()
-        self.conv3x3_1 = nn.Sequential(nn.Conv2d(in_channels, in_channels, 3, 1, 1), act())
-        self.conv3x3_2 = nn.Sequential(nn.Conv2d(in_channels * 3, in_channels, 3, 1, 1), act())
-        self.f_loc = LocalFeatureExtractor(in_channels, act)
-        self.f_sur = SurroundingContextExtractor(in_channels, act)
-        self.f_glo = GlobalContextExtractor(in_channels, act)
-        self.final_conv = nn.Conv2d(in_channels, in_channels, 3, 1, 1)
-    
-    def forward(self, x):
-        x0 = self.conv3x3_1(x)
-        loc = self.f_loc(x0)
-        sur = self.f_sur(x0)
-        glo = self.f_glo(x0)
-        joi_feat = torch.cat([loc, sur, glo], 1)  # the joint feature
-        out = self.conv3x3_2(joi_feat)
-        out = self.conv3x3_3(out)
-        return self.final_conv(out) + x
-
-
-class MainBlock(nn.Module):
-    def __init__(self, in_channels, act, context_guided_module):
-        super(MainBlock, self).__init__()
-        self.context_guided_modules = []
-        for i in range(5):
-            self.context_guided_modules.append(context_guided_module(in_channels, act))
-        self.context_guided_modules = nn.Sequential(*self.context_guided_modules)
-
-        self.conv3x3_1 = nn.Sequential(nn.Conv2d(in_channels * 2, in_channels, 3, 1, 1), act())
-        self.final_conv = nn.Conv2d(in_channels, in_channels, 3, 1, 1)
-    
-    def forward(self, x):
-        out = self.context_guided_modules(x)
-        out = torch.cat([x, out], 1)
-        out = self.conv3x3_1(out)
-        return self.final_conv(out) + x
-
+        return out + x
 
 class PatchBasedNonlocalModule(nn.Module):
     def __init__(self, num_convs=3, in_channels=128, kernel_size=3, act=nn.ReLU, bn=nn.Identity, num_patches=4):
@@ -195,24 +118,36 @@ class PatchBasedNonlocalModule(nn.Module):
         return out + x
 
 
-class UpsamplingGroup(nn.Module):
-    def __init__(self, in_channels, act, context_guided_module, num_blocks, up_scale):
-        super(UpsamplingGroup, self).__init__()
+class JointModule(nn.Module):
+    def __init__(self, in_channels=128, act=nn.ReLU):
+        super(JointModule, self).__init__()
+        self.context_guided_modules = []
+        for i in range(4):
+            self.context_guided_modules.append(ContextGuidedModule(in_channels=in_channels, act=act))
+        self.context_guided_modules = nn.Sequential(*self.context_guided_modules)
+        self.final_conv = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, 1, 1), act())
+
+    def forward(self, x):
+        out = self.context_guided_modules(x)
+        out = torch.cat([x, out], 1)
+        out = self.final_conv(out)
+        return out
+
+
+class MainBlock(nn.Module):
+    def __init__(self, num_blocks=3, in_channels=128, up_scale=2, act=nn.ReLU):
+        super(MainBlock, self).__init__()
         self.blocks = []
         for i in range(num_blocks):
-            self.blocks.append(MainBlock(in_channels, act, context_guided_module))
+            self.blocks.append(JointModule(in_channels, act))
         self.blocks.append(PatchBasedNonlocalModule(in_channels=in_channels, act=act))
         self.blocks = nn.Sequential(*self.blocks)
-
-        self.conv3x3_1 = nn.Sequential(nn.Conv2d(in_channels * 2, in_channels, 3, 1, 1), act())
-        self.final_conv = nn.Conv2d(in_channels, in_channels, 3, 1, 1)
-
+        self.final_conv = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, 1, 1), act())
         self.upsampler = nn.Identity() if up_scale <= 1 else common.Upsampler(common.default_conv, up_scale, in_channels)
-    
+
     def forward(self, x):
         out = self.blocks(x)
         out = torch.cat([x, out], 1)
-        out = self.conv3x3_1(out)
         out = self.final_conv(out) + x
         out = self.upsampler(out)
         return out
@@ -255,8 +190,6 @@ class HGDModule(nn.Module):
             norm_layer(out_channels),
             act())
         self.avgpool0 = nn.AdaptiveAvgPool2d(1)
-
-        self.final_conv = nn.Conv2d(out_channels, out_channels, 3, 1, 1)
 
 
     def forward(self, x):
@@ -306,8 +239,7 @@ class HGDModule(nn.Module):
         x_up = x_up.view(b, self.out_channels, h_aff, w_aff)
         x_up_cat = torch.cat([x_up, guide_cat_conv], 1)
         x_up_conv = self.conv_up(x_up_cat)
-
-        return self.final_conv(x_up_conv) + x[-1] # add skip connection
+        return x_up_conv
 
 
 class CGSRN(nn.Module):
@@ -320,58 +252,55 @@ class CGSRN(nn.Module):
         args.n_resblocks (int): 
         act: Activate function used in CGSRN. Default: nn.PReLU.
     """
-    def __init__(self, args):
+    def __init__(self, args, act=nn.PReLU):
         super(CGSRN, self).__init__()
-        assert len(args.scale) == 1
-        self.up_scale = args.scale[0]
-        self.patch_size = args.patch_size
-        n_colors = args.n_colors
-        n_feats = args.n_feats
-        n_resblocks = args.n_resblocks
-        if args.act == 'relu':
-            act = nn.ReLU
-        elif args.act == 'prelu':
-            act = nn.PReLU
-        else:
-            raise NotImplementedError("")
-        rgb_range = args.rgb_range
-
-        if args.version == 'v1':
-            context_guided_module = ContextGuidedModulev1
-        elif args.version == 'v2':
-            context_guided_module = ContextGuidedModulev2
-        else:
-            raise NotImplementedError("")
+        self.args = copy.deepcopy(args)
+        assert len(self.args.scale) == 1
+        self.args.scale = self.args.scale[0]
 
         # RGB mean for DIV2K
         rgb_mean = (0.4488, 0.4371, 0.4040)
         rgb_std = (1.0, 1.0, 1.0)
-        self.sub_mean = common.MeanShift(rgb_range, rgb_mean, rgb_std)
+        self.sub_mean = common.MeanShift(args.rgb_range, rgb_mean, rgb_std)
 
-        self.head = nn.Sequential(nn.Conv2d(n_colors, n_feats, 3, 1, 1), act())
+        self.head = nn.Conv2d(args.n_colors, args.n_feats, 3, 1, 1)
 
-        self.upsampling_groups = []
-        if self.up_scale == 2:
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 2))
-        elif self.up_scale == 3:
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 3))
-        elif self.up_scale == 4:
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 2))
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 2))
-        elif self.up_scale == 8:
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 2))
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 2))
-            self.upsampling_groups.append(UpsamplingGroup(n_feats, act, context_guided_module, n_resblocks, 2))
+        self.main_blocks = []
+        if args.direct_up:
+            self.main_blocks.append(MainBlock(num_blocks=args.n_resblocks, in_channels=args.n_feats, up_scale=1, act=act))
+            self.main_blocks.append(MainBlock(num_blocks=args.n_resblocks, in_channels=args.n_feats, up_scale=4, act=act))
         else:
-            raise NotImplementedError("")
-        self.upsampling_groups = nn.Sequential(*self.upsampling_groups)
+            for i in range(args.n_resgroups):
+                self.main_blocks.append(MainBlock(num_blocks=args.n_resblocks, in_channels=args.n_feats, act=act))
+        self.main_blocks = nn.Sequential(*self.main_blocks)
 
-        self.HGDModule = HGDModule(n_feats, n_feats*4, n_feats, nn.Identity, act=act)
+        self.HGDModule = HGDModule(args.n_feats, args.n_feats*4, args.n_feats, nn.Identity, act=act)
 
-        self.tail = nn.Conv2d(n_feats, n_colors, 3, 1, 1)
+        self.tail = nn.Conv2d(args.n_feats, args.n_colors, 3, 1, 1)
 
-        self.add_mean = common.MeanShift(rgb_range, rgb_mean, rgb_std, 1)
-    
+        self.add_mean = common.MeanShift(args.rgb_range, rgb_mean, rgb_std, 1)
+
+        # # debug
+        # conv = common.default_conv
+        # kernel_size = 3
+        # act = act(True)
+
+        # m_body = [
+        #     common.ResBlock(
+        #         conv, args.n_feats, kernel_size, act=act, res_scale=args.res_scale
+        #     ) for _ in range(args.n_resblocks)
+        # ]
+        # m_body.append(conv(args.n_feats, args.n_feats, kernel_size))
+        # self.body = nn.Sequential(*m_body)
+
+        # self.upsampler = common.Upsampler(conv, 4, args.n_feats, act=False)
+
+
+        # self.ContextGuidedModule = ContextGuidedModule(args.n_feats, dilation=1)
+        # self.JointModule = JointModule(args.n_feats)
+        # self.MainBlock1 = MainBlock()
+        # self.MainBlock2 = MainBlock()
+
     def forward(self, x):
 
         def _forward(x):
@@ -379,11 +308,21 @@ class CGSRN(nn.Module):
             x = self.head(x)
 
             outs = [x]
-            for upsampling_group in self.upsampling_groups:
-                x = upsampling_group(x)
+            for main_block in self.main_blocks:
+                now = main_block(x)
+                x = now + x if now.size() == x.size() else now # skip connection
                 outs.append(x)
+            # final_out = outs[-1]
 
-            final_out = self.HGDModule(outs)
+            final_out = self.HGDModule(outs) + outs[-1]
+
+            # # debug
+            # x = self.body(x)
+            # x = self.ContextGuidedModule(x)
+            # x = self.JointModule(x)
+            # final_out = self.upsampler(x)
+            # final_out = self.MainBlock1(x)
+            # final_out = self.MainBlock2(final_out)
 
             final_out = self.tail(final_out)
             final_out = self.add_mean(final_out)
@@ -393,14 +332,15 @@ class CGSRN(nn.Module):
         if self.training:
             return _forward(x)
         else:
+            # import pdb
+            # pdb.set_trace()
             b, c, h, w = x.size()
-            H = h * self.scale
-            W = w * self.scale
+            H = h * self.args.scale
+            W = w * self.args.scale
 
-            h_crop = self.patch_size // self.scale if h >= self.patch_size // self.scale else h // 4 * 4
-            w_crop = self.patch_size // self.scale if w >= self.patch_size // self.scale else w // 4 * 4
-
-            h_stride, w_stride = h_crop // 3 * 2, w_crop // 3 * 2
+            h_stride = self.args.patch_size // self.args.scale if h >= self.args.patch_size // self.args.scale else h // 4 * 4
+            w_stride = self.args.patch_size // self.args.scale if w >= self.args.patch_size // self.args.scale else w // 4 * 4
+            h_crop, w_crop = h_stride, w_stride
 
             h_grids = max(h - h_crop + h_stride - 1, 0) // h_stride + 1
             w_grids = max(w - w_crop + w_stride - 1, 0) // w_stride + 1
@@ -424,28 +364,27 @@ class CGSRN(nn.Module):
             return out / count_mat
 
 
-
 if __name__ == '__main__':
     # test CGSRN
     import argparse
     args = argparse.Namespace()
-    args.scale = [4]
-    args.patch_size = 192
+    args.rgb_range = 255
     args.n_colors = 3
     args.n_feats = 128
-    args.n_resblocks = 2
-    args.act = 'prelu'
-    args.rgb_range = 255
-    args.version = 'v1'
-
+    args.n_resblocks = 5
+    args.n_resgroups = 2
+    args.direct_up = False
+    args.patch_size = 192
+    args.scale = 4
 
     model = CGSRN(args)
     model.train()
 
     from torchsummary import summary
 
-    summary(model.cuda(), input_size=(3, 16, 16), batch_size=1)
+    summary(model.cuda(), input_size=(3, 48, 48), batch_size=1)
 
     # 300*(batch_size*1000)/batch_size=300000 次迭代
     # 设每次迭代需要x秒，那么训练完毕需要300000x秒，折合83.3333x小时
     # x的可接受范围在0.5s左右，也即每次迭代必须在0.5s左右结束
+
