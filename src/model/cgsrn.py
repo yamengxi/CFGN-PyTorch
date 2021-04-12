@@ -393,14 +393,19 @@ class CGSRN(nn.Module):
         if self.training:
             return _forward(x)
         else:
+            # import pdb
+            # pdb.set_trace()
             b, c, h, w = x.size()
-            H = h * self.scale
-            W = w * self.scale
+            H = h * self.up_scale
+            W = w * self.up_scale
 
-            h_crop = self.patch_size // self.scale if h >= self.patch_size // self.scale else h // 4 * 4
-            w_crop = self.patch_size // self.scale if w >= self.patch_size // self.scale else w // 4 * 4
+            # h_crop = h // 4 * 4
+            # w_crop = w // 4 * 4
 
-            h_stride, w_stride = h_crop // 3 * 2, w_crop // 3 * 2
+            h_crop = self.patch_size // self.up_scale if h >= self.patch_size // self.up_scale else h // 4 * 4
+            w_crop = self.patch_size // self.up_scale if w >= self.patch_size // self.up_scale else w // 4 * 4
+
+            h_stride, w_stride = h_crop, w_crop
 
             h_grids = max(h - h_crop + h_stride - 1, 0) // h_stride + 1
             w_grids = max(w - w_crop + w_stride - 1, 0) // w_stride + 1
@@ -416,8 +421,8 @@ class CGSRN(nn.Module):
                     x1 = max(x2 - w_crop, 0)
                     crop_x = x[:, :, y1:y2, x1:x2]
                     crop_out = _forward(crop_x)
-                    out += F.pad(crop_out, (int(x1)*self.args.scale, int(w - x2)*self.args.scale, int(y1)*self.args.scale, int(h - y2)*self.args.scale))
-                    count_mat[:, :, y1*self.args.scale:y2*self.args.scale, x1*self.args.scale:x2*self.args.scale] += 1
+                    out += F.pad(crop_out, (int(x1)*self.up_scale, int(w - x2)*self.up_scale, int(y1)*self.up_scale, int(h - y2)*self.up_scale))
+                    count_mat[:, :, y1*self.up_scale:y2*self.up_scale, x1*self.up_scale:x2*self.up_scale] += 1
 
             assert (count_mat == 0).sum() == 0
 
@@ -444,7 +449,7 @@ if __name__ == '__main__':
 
     from torchsummary import summary
 
-    summary(model.cuda(), input_size=(3, 16, 16), batch_size=1)
+    summary(model.cuda(), input_size=(3, 16, 16), batch_size=8)
 
     # 300*(batch_size*1000)/batch_size=300000 次迭代
     # 设每次迭代需要x秒，那么训练完毕需要300000x秒，折合83.3333x小时

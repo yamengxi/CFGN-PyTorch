@@ -69,7 +69,7 @@ parser.add_argument('--precision', type=str, default='single',
                     help='FP precision for test (single | half)')
 parser.add_argument('--direct_up', default=False,
                     help='')
-parser.add_argument('--version', type='str', default='v1',
+parser.add_argument('--version', type=str, default='v1',
                     help='')
 
 # Option for Residual dense network (RDN)
