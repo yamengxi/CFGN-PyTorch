@@ -58,7 +58,7 @@
 
 # CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R5 --n_resgroups 2 --n_resblocks 5 --n_feats 128 --res_scale 0.1 --direct_up False --reset --data_test Set5+Set14 --batch_size 8 --patch_size 192 --save_results --lr 0.0001 --decay 200-400 --epochs 0 &
 
-CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R2M5V1 --n_resgroups 2 --n_resblocks 2 --n_feats 128 --reset --data_test Set5+Set14 --batch_size 5 --patch_size 192 --save_results --lr 0.0001 --decay 150-300-450 --epochs 0 --test_every 0 --version v1
+# CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BIX4_G2R2M5V1 --n_resgroups 2 --n_resblocks 2 --n_feats 128 --reset --data_test Set5+Set14 --batch_size 5 --patch_size 192 --save_results --lr 0.0001 --decay 150-300-450 --epochs 0 --test_every 0 --version v1
 
 
 # test EDSR (EDSR-PyTorch)
@@ -96,5 +96,12 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py --model CGSRN --scale 4 --save CGSRN_BI
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model HAN --n_resblocks 20 --n_feats 64 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 2 --pre_train /home/yamengxi/models/HAN/HAN_BIX2.pt --test_only --save HAN_BIX2 --save_results
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model HAN --n_resblocks 20 --n_feats 64 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 3 --pre_train /home/yamengxi/models/HAN/HAN_BIX3.pt --test_only --save HAN_BIX3 --save_results
 # CUDA_VISIBLE_DEVICES=2 python -u main.py --model HAN --n_resblocks 20 --n_feats 64 --data_test Set5+Set14+B100+Urban100+Manga109 --scale 4 --pre_train /home/yamengxi/models/HAN/HAN_BIX4.pt --test_only --save HAN_BIX4 --save_results
+
+
+
+# train bfn
+CUDA_VISIBLE_DEVICES=1 python -u main.py \
+--model BFN --scale 4 --n_feats 64 --n_resblocks 12 --act prelu \
+--save BFN_BIX4_F64R12 --reset --data_test Set5+Set14+B100+Urban100 --batch_size 20 --patch_size 256 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
 
 
