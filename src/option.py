@@ -69,8 +69,11 @@ parser.add_argument('--precision', type=str, default='single',
                     help='FP precision for test (single | half)')
 parser.add_argument('--direct_up', default=False,
                     help='')
-parser.add_argument('--version', type=str, default='v1',
+parser.add_argument('--main_block_version', type=str, default='v1',
                     help='')
+parser.add_argument('--butterfly_conv_version', type=str, default='v1',
+                    help='')
+parser.add_argument('--skip_connection', type=bool, default=False, help='')
 
 # Option for Residual dense network (RDN)
 parser.add_argument('--G0', type=int, default=64,

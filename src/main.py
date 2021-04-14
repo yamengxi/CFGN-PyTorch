@@ -21,6 +21,7 @@ def main():
         if checkpoint.ok:
             loader = data.Data(args)
             _model = model.Model(args, checkpoint)
+            checkpoint.write_log('Total params: %.2fK' % (sum(p.numel() for p in _model.parameters()) / 1024.0))
             _loss = loss.Loss(args, checkpoint) if not args.test_only else None
             t = Trainer(args, loader, _model, _loss, checkpoint)
             while not t.terminate():
