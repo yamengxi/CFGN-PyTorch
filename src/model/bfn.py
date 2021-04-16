@@ -21,6 +21,30 @@ def generate_masks(num):
     return masks
 
 
+class CA(nn.Module):
+    def __init__(self, in_channels, reduction, act, skip_connection):
+        super(CA, self).__init__()
+        assert reduction >= 1 and in_channels >= reduction
+        self.skip_connection = skip_connection
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Conv2d(in_channels * 2, in_channels * 2 // reduction, 1),
+            act(in_channels * 2 // reduction),
+            nn.Conv2d(in_channels * 2 // reduction, in_channels, 1),
+            nn.Sigmoid()
+        )
+    
+    def forward(self, x):
+        y = self.avg_pool(x)
+        z = torch.mean(torch.mean((x - y) ** 2, dim=2, keepdim=True), dim=3, keepdim=True) ** 0.5
+        a = torch.cat([y, z], 1)
+        a = self.fc(a)
+        if self.skip_connection:
+            return x * a + x
+        else:
+            return x * a
+
+
 class ButterflyConv_v1(nn.Module):
     def __init__(self, in_channels, act, dilation, skip_connection):
         super(ButterflyConv_v1, self).__init__()
@@ -151,6 +175,25 @@ class MainBlock_v2(nn.Module):
         return out + x
 
 
+class MainBlock_v3(nn.Module):
+    def __init__(self, in_channels, act, butterfly_conv, skip_connection):
+        super(MainBlock_v3, self).__init__()
+        self.butterfly_conv = butterfly_conv(in_channels, act, 1, skip_connection)
+        self.butterfly_dconv = butterfly_conv(in_channels, act, 2, skip_connection)
+        self.butterfly_final_conv = nn.Conv2d(in_channels * 2, in_channels, 1, 1, 0)
+        self.act = act(in_channels)
+        self.ca = CA(in_channels, 4, act, skip_connection)
+
+    def forward(self, x):
+        x1 = self.butterfly_conv(x)
+        x2 = self.butterfly_dconv(x)
+        out = torch.cat([x1, x2], 1)
+        out = self.butterfly_final_conv(out)
+        out = self.act(out)
+        out = self.ca(out)
+        return out + x
+
+
 class BFN(nn.Module):
     """BFN network structure.
 
@@ -184,6 +227,8 @@ class BFN(nn.Module):
             main_block = MainBlock_v1
         elif args.main_block_version == 'v2':
             main_block = MainBlock_v2
+        elif args.main_block_version == 'v3':
+            main_block = MainBlock_v3
         else:
             raise NotImplementedError("")
 
@@ -255,7 +300,7 @@ class BFN(nn.Module):
 if __name__ == '__main__':
     # test network
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
     import argparse
     args = argparse.Namespace()
@@ -263,10 +308,10 @@ if __name__ == '__main__':
     args.patch_size = 192
     args.n_colors = 3
     args.n_feats = 64
-    args.n_resblocks = 12
+    args.n_resblocks = 5
     args.act = 'prelu'
     args.rgb_range = 255
-    args.main_block_version = 'v1'
+    args.main_block_version = 'v3'
     args.butterfly_conv_version = 'v1'
     args.skip_connection = False
 
@@ -276,7 +321,7 @@ if __name__ == '__main__':
 
     from torchsummary import summary
 
-    summary(model.cuda(), input_size=(3, 64, 64), batch_size=8)
+    summary(model.cuda(), input_size=(3, 48, 48), batch_size=1)
 
     # 300*(batch_size*1000)/batch_size=300000 次迭代
     # 设每次迭代需要x秒，那么训练完毕需要300000x秒，折合83.3333x小时

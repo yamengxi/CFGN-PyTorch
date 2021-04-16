@@ -123,3 +123,15 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py \
 CUDA_VISIBLE_DEVICES=0 python -u main.py \
 --model BFN --scale 4 --n_feats 64 --n_resblocks 6 --act prelu --main_block_version v2 --butterfly_conv_version v3 \
 --save BFN_BIX4_F64R12_MBV2_BFCV3 --reset --data_test Set5+Set14+B100+Urban100 --batch_size 10 --patch_size 256 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
+
+CUDA_VISIBLE_DEVICES=0 python -u main.py \
+--model BFN --scale 4 --n_feats 64 --n_resblocks 5 --act prelu --main_block_version v3 --butterfly_conv_version v1 \
+--save BFN_BIX4_F64R5_MBV3_BFCV1 --reset --data_test Set5+Set14+B100+Urban100 --batch_size 10 --patch_size 256 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
+
+CUDA_VISIBLE_DEVICES=0 python -u main.py \
+--model BFN --scale 4 --n_feats 64 --n_resblocks 5 --act prelu --main_block_version v3 --butterfly_conv_version v2 \
+--save BFN_BIX4_F64R5_MBV3_BFCV2 --reset --data_test Set5+Set14+B100+Urban100 --batch_size 10 --patch_size 256 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
+
+CUDA_VISIBLE_DEVICES=0 python -u main.py \
+--model BFN --scale 4 --n_feats 64 --n_resblocks 5 --act prelu --main_block_version v3 --butterfly_conv_version v3 \
+--save BFN_BIX4_F64R5_MBV3_BFCV3 --reset --data_test Set5+Set14+B100+Urban100 --batch_size 10 --patch_size 256 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
