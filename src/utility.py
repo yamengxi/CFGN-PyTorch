@@ -60,6 +60,8 @@ class checkpoint():
             else:
                 args.load = ''
 
+        self.dir += time.strftime("_%Y-%m-%d_%H:%M:%S", time.localtime())
+
         if args.reset:
             os.system('rm -rf ' + self.dir)
             args.load = ''

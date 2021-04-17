@@ -74,6 +74,8 @@ parser.add_argument('--main_block_version', type=str, default='v1',
 parser.add_argument('--butterfly_conv_version', type=str, default='v1',
                     help='')
 parser.add_argument('--skip_connection', type=bool, default=False, help='')
+parser.add_argument('--basic_module_version', type=str, default='v1',
+                    help='')
 
 # Option for Residual dense network (RDN)
 parser.add_argument('--G0', type=int, default=64,

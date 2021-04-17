@@ -21,7 +21,10 @@ def main():
         if checkpoint.ok:
             loader = data.Data(args)
             _model = model.Model(args, checkpoint)
-            checkpoint.write_log('Total params: %.2fK' % (sum(p.numel() for p in _model.parameters()) / 1024.0))
+            from torchsummaryX import summary
+            _model.model.eval()
+            x = summary(_model.model, torch.zeros((1, 3, 720 // args.scale[0], 1280 // args.scale[0])).cuda())
+            checkpoint.write_log(str(x))
             _loss = loss.Loss(args, checkpoint) if not args.test_only else None
             t = Trainer(args, loader, _model, _loss, checkpoint)
             while not t.terminate():
