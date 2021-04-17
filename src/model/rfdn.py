@@ -21,7 +21,7 @@ def generate_masks(num):
             now[j*length:j*length+length//2] = now[j*length+length//2:j*length+length]
             now[j*length+length//2:j*length+length] = tmp
         masks.append(now)
-    return masks
+    return torch.tensor(masks)
 
 
 class ButterflyConv_v1(nn.Module):
@@ -64,11 +64,12 @@ class ButterflyConv_v1(nn.Module):
         self.conv_acts = nn.Sequential(*self.conv_acts)
 
     def forward(self, x):
+        self.masks = self.masks.to(x.device)
         x = self.head(x)
 
         now = x
         for i in range(self.num_butterflies):
-            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](now[:,self.masks[i],:,:])
+            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](torch.index_select(now, 1, self.masks[i]))
         now = now + x
 
         now = self.tail(now)
