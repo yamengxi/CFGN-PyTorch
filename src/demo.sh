@@ -144,4 +144,4 @@ CUDA_VISIBLE_DEVICES=2,3 python -u main.py --n_GPUs 2 \
 
 CUDA_VISIBLE_DEVICES=2,3,4 python -u main.py --n_GPUs 3 \
 --model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act lrelu --basic_module_version v2 \
---save RFDN_BIX2_F64R6_BMV2 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
+--save RFDN_BIX2_F64R8_BMV2 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
