@@ -24,9 +24,9 @@ def generate_masks(num):
     return torch.tensor(masks)
 
 
-class ButterflyConv(nn.Module):
-    def __init__(self, in_channels, act, out_channels, kernel_size, stride, dilation=1):
-        super(ButterflyConv, self).__init__()
+class ButterflyConv_v1(nn.Module):
+    def __init__(self, in_channels, act, out_channels, dilation=1):
+        super(ButterflyConv_v1, self).__init__()
 
         min_channels = min(in_channels, out_channels)
         assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
@@ -36,15 +36,15 @@ class ButterflyConv(nn.Module):
             self.tail = nn.Identity()
         elif in_channels > out_channels:
             self.head = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act(out_channels) if act == nn.PReLU else act()
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                act()
             )
             self.tail = nn.Identity()
         elif in_channels < out_channels:
             self.head = nn.Identity()
             self.tail = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act(out_channels) if act == nn.PReLU else act()
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                act()
             )
         else:
             raise NotImplementedError("")
@@ -59,10 +59,7 @@ class ButterflyConv(nn.Module):
         self.conv_acts = []
         for i in range(self.num_butterflies * 2):
             self.conv_acts.append(
-                nn.Sequential(
-                    nn.Conv2d(min_channels, min_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=min_channels),
-                    act(min_channels) if act == nn.PReLU else act()
-                )
+                nn.Sequential(nn.Conv2d(min_channels, min_channels, 3, 1, dilation, dilation, groups=min_channels), act())
             )
         self.conv_acts = nn.Sequential(*self.conv_acts)
 
@@ -73,58 +70,6 @@ class ButterflyConv(nn.Module):
         now = x
         for i in range(self.num_butterflies):
             now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](torch.index_select(now, 1, self.masks[i]))
-        now = now + x
-
-        now = self.tail(now)
-        return now
-
-
-class ButterflyConv_v2(nn.Module):
-    def __init__(self, in_channels, act, out_channels, dilation=1):
-        super(ButterflyConv_v2, self).__init__()
-
-        min_channels = min(in_channels, out_channels)
-        assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
-
-        if in_channels == out_channels:
-            self.head = nn.Identity()
-            self.tail = nn.Identity()
-        elif in_channels > out_channels:
-            self.head = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act()
-            )
-            self.tail = nn.Identity()
-        elif in_channels < out_channels:
-            self.head = nn.Identity()
-            self.tail = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act()
-            )
-        else:
-            raise NotImplementedError("")
-
-        self.num_butterflies = 0
-        for i in range(10000):
-            if 2 ** i == min_channels:
-                self.num_butterflies = i
-                break
-        self.masks = generate_masks(self.num_butterflies)
-
-        self.conv_acts = []
-        for i in range(self.num_butterflies * 2):
-            self.conv_acts.append(
-                nn.Sequential(nn.Conv2d(min_channels, min_channels, 3, 1, dilation, dilation, groups=min_channels), nn.PReLU(min_channels))
-            )
-        self.conv_acts = nn.Sequential(*self.conv_acts)
-
-    def forward(self, x):
-        # self.masks = self.masks.to(x.device)
-        x = self.head(x)
-
-        now = x
-        for i in range(self.num_butterflies):
-            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](now)
         now = now + x
 
         now = self.tail(now)
@@ -144,22 +89,24 @@ class SRB(nn.Module):
 
 
 class MainBlock(nn.Module):
-    def __init__(self, in_channels, act):
+    def __init__(self, in_channels, act, basic_module):
         super(MainBlock, self).__init__()
         self.steps = 3
         self.convs = []
         for i in range(self.steps):
-            self.convs.append(ButterflyConv(in_channels, act, in_channels // 2, 1, 1))
+            self.convs.append(nn.Conv2d(in_channels, in_channels // 2, 1, 1, 0))
         self.convs = nn.Sequential(*self.convs)
 
         self.basic_modules = []
         for i in range(self.steps):
-            self.basic_modules.append(ButterflyConv(in_channels, act, in_channels, 3, 1))
+            self.basic_modules.append(basic_module(in_channels, act, in_channels))
         self.basic_modules = nn.Sequential(*self.basic_modules)
 
-        self.conv3x3 = ButterflyConv(in_channels, act, in_channels // 2, 3, 1)
+        self.conv3x3 = nn.Conv2d(in_channels, in_channels // 2, 3, 1, 1)
 
-        self.conv1x1 = ButterflyConv(in_channels * 2, act, in_channels, 1, 1)
+        self.conv1x1 = nn.Conv2d(in_channels * 2, in_channels, 1, 1, 0)
+
+        self.act = act()
 
     def forward(self, x):
         now = x
@@ -171,6 +118,7 @@ class MainBlock(nn.Module):
         features.append(now)
         features = torch.cat(features, 1)
         out = self.conv1x1(features)
+        out = self.act(out)
         return out + x
 
 
@@ -208,8 +156,6 @@ class RFDN(nn.Module):
             basic_module = SRB
         elif args.basic_module_version == 'v2':
             basic_module = ButterflyConv_v1
-        elif args.basic_module_version == 'v3':
-            basic_module = ButterflyConv_v2
         else:
             raise NotImplementedError("")
 
@@ -224,15 +170,15 @@ class RFDN(nn.Module):
 
         self.main_blocks = []
         for i in range(n_resblocks):
-            self.main_blocks.append(MainBlock(n_feats, act))
+            self.main_blocks.append(MainBlock(n_feats, act, basic_module))
         self.main_blocks = nn.Sequential(*self.main_blocks)
 
-        self.features_fusion_module = ButterflyConv(n_feats * n_resblocks, act, n_feats, 3, 1)
-
-        self.final_conv = nn.Sequential(
-            nn.Conv2d(n_feats, n_feats, 3, 1, 1),
-            act(n_feats)
+        self.features_fusion_module = nn.Sequential(
+            nn.Conv2d(n_feats * n_resblocks, n_feats, 1, 1, 0),
+            act()
         )
+
+        self.final_conv = nn.Conv2d(n_feats, n_feats, 3, 1, 1)
 
         self.upsampler = nn.Sequential(
             nn.Conv2d(n_feats, n_colors * (scale * scale), 3, 1, 1),
@@ -265,18 +211,18 @@ class RFDN(nn.Module):
 if __name__ == '__main__':
     # test network
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
     import argparse
     args = argparse.Namespace()
     args.scale = [2]
     args.patch_size = 256
     args.n_colors = 3
-    args.n_feats = 64
-    args.n_resblocks = 14
-    args.act = 'prelu'
+    args.n_feats = 48
+    args.n_resblocks = 6
+    args.act = 'lrelu'
     args.rgb_range = 255
-    # args.basic_module_version = 'v1'
+    args.basic_module_version = 'v1'
 
     # args.scale = [2]
     # args.patch_size = 256
@@ -293,7 +239,7 @@ if __name__ == '__main__':
     model.eval()
 
     from torchsummaryX import summary
-    x = summary(model.cuda(), torch.zeros((1, 3, 720 // args.scale[0], 1280 // args.scale[0])).cuda())
+    x = summary(model.cuda(), torch.zeros((1, 3, 720 // 4, 1280 // 4)).cuda())
 
     # from torchsummary import summary
     # summary(model.cuda(), input_size=(3, 720 // 4, 1280 // 4), batch_size=1)
