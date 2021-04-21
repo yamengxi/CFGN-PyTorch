@@ -76,6 +76,58 @@ class ButterflyConv_v1(nn.Module):
         return now
 
 
+class ButterflyConv_v2(nn.Module):
+    def __init__(self, in_channels, act, out_channels, dilation=1):
+        super(ButterflyConv_v2, self).__init__()
+
+        min_channels = min(in_channels, out_channels)
+        assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
+
+        if in_channels == out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Identity()
+        elif in_channels > out_channels:
+            self.head = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                act()
+            )
+            self.tail = nn.Identity()
+        elif in_channels < out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                act()
+            )
+        else:
+            raise NotImplementedError("")
+
+        self.num_butterflies = 0
+        for i in range(10000):
+            if 2 ** i == min_channels:
+                self.num_butterflies = i
+                break
+        self.masks = generate_masks(self.num_butterflies)
+
+        self.conv_acts = []
+        for i in range(self.num_butterflies * 2):
+            self.conv_acts.append(
+                nn.Sequential(nn.Conv2d(min_channels, min_channels, 3, 1, dilation, dilation, groups=min_channels), nn.PReLU(min_channels))
+            )
+        self.conv_acts = nn.Sequential(*self.conv_acts)
+
+    def forward(self, x):
+        # self.masks = self.masks.to(x.device)
+        x = self.head(x)
+
+        now = x
+        for i in range(self.num_butterflies):
+            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](now)
+        now = now + x
+
+        now = self.tail(now)
+        return now
+
+
 class SRB(nn.Module):
     def __init__(self, in_channels, act, *args):
         super(SRB, self).__init__()
@@ -156,6 +208,8 @@ class RFDN(nn.Module):
             basic_module = SRB
         elif args.basic_module_version == 'v2':
             basic_module = ButterflyConv_v1
+        elif args.basic_module_version == 'v3':
+            basic_module = ButterflyConv_v2
         else:
             raise NotImplementedError("")
 
