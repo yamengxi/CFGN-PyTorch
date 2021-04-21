@@ -138,10 +138,22 @@
 
 
 # train RFDN
-CUDA_VISIBLE_DEVICES=2,3 python -u main.py --n_GPUs 2 \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 --model RFDN --scale 2 --n_feats 48 --n_resblocks 6 --act lrelu --basic_module_version v1 \
---save RFDN_BIX2_F48R6_BMV1 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
+--save RFDN_BIX2_F48R6_BMV1 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
 
-CUDA_VISIBLE_DEVICES=2,3,4 python -u main.py --n_GPUs 3 \
---model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act lrelu --basic_module_version v3 \
---save RFDN_BIX2_F64R8_BMV3 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000 --epochs 0 # --test_every 0
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
+--model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act prelu --basic_module_version v3 \
+--save RFDN_BIX2_F64R8_BMV3 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
+--model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act prelu --basic_module_version v4 \
+--save RFDN_BIX2_F64R8_BMV4 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
+--model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act prelu --basic_module_version v5 \
+--save RFDN_BIX2_F64R8_BMV5 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0

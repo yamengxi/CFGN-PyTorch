@@ -11,6 +11,20 @@ def make_model(args, parent=False):
     return RFDN(args)
 
 
+def activation(act_type, inplace=True, neg_slope=0.05, n_prelu=1):
+    act_type = act_type.lower()
+    if act_type == 'identity':
+        return nn.Identity()
+    elif act_type == 'relu':
+        return nn.ReLU(inplace)
+    elif act_type == 'lrelu':
+        return nn.LeakyReLU(neg_slope, inplace)
+    elif act_type == 'prelu':
+        return nn.PReLU(num_parameters=n_prelu, init=neg_slope)
+    else:
+        raise NotImplementedError('activation layer [{:s}] is not found'.format(act_type))
+
+
 def generate_masks(num):
     masks = []
     for i in range(num):
@@ -24,9 +38,9 @@ def generate_masks(num):
     return torch.tensor(masks)
 
 
-class ButterflyConv(nn.Module):
+class ButterflyConv_v1(nn.Module):
     def __init__(self, in_channels, act, out_channels, kernel_size, stride, dilation=1):
-        super(ButterflyConv, self).__init__()
+        super(ButterflyConv_v1, self).__init__()
 
         min_channels = min(in_channels, out_channels)
         assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
@@ -37,14 +51,14 @@ class ButterflyConv(nn.Module):
         elif in_channels > out_channels:
             self.head = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act(out_channels) if act == nn.PReLU else act()
+                activation(act, n_prelu=out_channels)
             )
             self.tail = nn.Identity()
         elif in_channels < out_channels:
             self.head = nn.Identity()
             self.tail = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act(out_channels) if act == nn.PReLU else act()
+                activation(act, n_prelu=out_channels)
             )
         else:
             raise NotImplementedError("")
@@ -61,7 +75,7 @@ class ButterflyConv(nn.Module):
             self.conv_acts.append(
                 nn.Sequential(
                     nn.Conv2d(min_channels, min_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=min_channels),
-                    act(min_channels) if act == nn.PReLU else act()
+                    activation(act, n_prelu=min_channels)
                 )
             )
         self.conv_acts = nn.Sequential(*self.conv_acts)
@@ -92,14 +106,14 @@ class ButterflyConv_v2(nn.Module):
         elif in_channels > out_channels:
             self.head = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act()
+                activation(act, n_prelu=out_channels)
             )
             self.tail = nn.Identity()
         elif in_channels < out_channels:
             self.head = nn.Identity()
             self.tail = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
-                act()
+                activation(act, n_prelu=out_channels)
             )
         else:
             raise NotImplementedError("")
@@ -114,8 +128,131 @@ class ButterflyConv_v2(nn.Module):
         self.conv_acts = []
         for i in range(self.num_butterflies * 2):
             self.conv_acts.append(
-                nn.Sequential(nn.Conv2d(min_channels, min_channels, 3, 1, dilation, dilation, groups=min_channels), nn.PReLU(min_channels))
+                nn.Sequential(
+                    nn.Conv2d(min_channels, min_channels, 3, 1, dilation, dilation, groups=min_channels),
+                    activation(act, n_prelu=min_channels)
+                )
             )
+        self.conv_acts = nn.Sequential(*self.conv_acts)
+
+    def forward(self, x):
+        # self.masks = self.masks.to(x.device)
+        x = self.head(x)
+
+        now = x
+        for i in range(self.num_butterflies):
+            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](now)
+        now = now + x
+
+        now = self.tail(now)
+        return now
+
+
+class ButterflyConv_v3(nn.Module):
+    def __init__(self, in_channels, act, out_channels, dilation=1):
+        super(ButterflyConv_v3, self).__init__()
+
+        min_channels = min(in_channels, out_channels)
+        assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
+
+        if in_channels == out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Identity()
+        elif in_channels > out_channels:
+            self.head = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+            self.tail = nn.Identity()
+        elif in_channels < out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+        else:
+            raise NotImplementedError("")
+
+        self.num_butterflies = 0
+        for i in range(10000):
+            if 2 ** i == min_channels:
+                self.num_butterflies = i
+                break
+        self.masks = generate_masks(self.num_butterflies)
+
+        self.convs = [
+            nn.Conv2d(min_channels, min_channels, 3, 1, dilation, dilation, groups=min_channels) \
+            for _ in range(self.num_butterflies * 2)
+        ]
+        self.convs = nn.Sequential(*self.convs)
+
+        self.acts = [
+            activation(act, n_prelu=min_channels) \
+            for _ in range(self.num_butterflies * 2)
+        ]
+        self.acts = nn.Sequential(*self.acts)
+
+    def forward(self, x):
+        # self.masks = self.masks.to(x.device)
+        x = self.head(x)
+
+        now = x
+        for i in range(self.num_butterflies):
+            now = self.acts[i*2](self.convs[i*2](now) + now * 0.1) + self.acts[i*2+1](self.convs[i*2+1](now) + now * 0.1)
+        now = now + x
+
+        now = self.tail(now)
+        return now
+
+
+class ButterflyConv_v4(nn.Module):
+    def __init__(self, in_channels, act, out_channels, dilation=1):
+        super(ButterflyConv_v4, self).__init__()
+
+        min_channels = min(in_channels, out_channels)
+        assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
+
+        if in_channels == out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Identity()
+        elif in_channels > out_channels:
+            self.head = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+            self.tail = nn.Identity()
+        elif in_channels < out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, 1, dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+        else:
+            raise NotImplementedError("")
+
+        self.num_butterflies = 0
+        for i in range(10000):
+            if 2 ** i == min_channels:
+                self.num_butterflies = i
+                break
+        self.masks = generate_masks(self.num_butterflies)
+
+        self.conv_acts = []
+        for i in range(self.num_butterflies * 2):
+            if i % 2 == 0:
+                self.conv_acts.append(
+                    nn.Sequential(
+                        nn.Conv2d(min_channels, min_channels, 3, 1, 1, 1, groups=min_channels),
+                        activation(act, n_prelu=min_channels)
+                    )
+                )
+            else:
+                self.conv_acts.append(
+                    nn.Sequential(
+                        nn.Conv2d(min_channels, min_channels, 3, 1, 3, 3, groups=min_channels),
+                        activation(act, n_prelu=min_channels)
+                    )
+                )
         self.conv_acts = nn.Sequential(*self.conv_acts)
 
     def forward(self, x):
@@ -135,7 +272,7 @@ class SRB(nn.Module):
     def __init__(self, in_channels, act, *args):
         super(SRB, self).__init__()
         self.conv3x3 = nn.Conv2d(in_channels, in_channels, 3, 1, 1)
-        self.act = act()
+        self.act = activation(act, n_prelu=in_channels)
     
     def forward(self, x):
         out = self.conv3x3(x) + x
@@ -144,28 +281,38 @@ class SRB(nn.Module):
 
 
 class MainBlock(nn.Module):
-    def __init__(self, in_channels, act):
+    def __init__(self, in_channels, act, basic_module):
         super(MainBlock, self).__init__()
         self.steps = 3
-        self.convs = []
-        for i in range(self.steps):
-            self.convs.append(ButterflyConv(in_channels, act, in_channels // 2, 1, 1))
-        self.convs = nn.Sequential(*self.convs)
+        self.conv_acts = [
+            nn.Sequential(
+                nn.Conv2d(in_channels, in_channels // 2, 1, 1, 0),
+                activation('lrelu')
+            ) for _ in range(self.steps)
+        ]
+        self.conv_acts = nn.Sequential(*self.conv_acts)
 
-        self.basic_modules = []
-        for i in range(self.steps):
-            self.basic_modules.append(ButterflyConv(in_channels, act, in_channels, 3, 1))
+        self.basic_modules = [
+            basic_module(in_channels, act, in_channels) \
+            for _ in range(self.steps)
+        ]
         self.basic_modules = nn.Sequential(*self.basic_modules)
 
-        self.conv3x3 = ButterflyConv(in_channels, act, in_channels // 2, 3, 1)
+        self.conv3x3 = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels // 2, 3, 1, 1),
+            activation('lrelu')
+        )
 
-        self.conv1x1 = ButterflyConv(in_channels * 2, act, in_channels, 1, 1)
+        self.conv1x1 = nn.Sequential(
+            nn.Conv2d(in_channels * 2, in_channels, 1, 1, 0),
+            activation('lrelu')
+        )
 
     def forward(self, x):
         now = x
         features = []
         for i in range(self.steps):
-            features.append(self.convs[i](now))
+            features.append(self.conv_acts[i](now))
             now = self.basic_modules[i](now)
         now = self.conv3x3(now)
         features.append(now)
@@ -195,21 +342,18 @@ class RFDN(nn.Module):
         n_colors = args.n_colors
         n_feats = args.n_feats
         n_resblocks = args.n_resblocks
-        if args.act == 'relu':
-            act = nn.ReLU
-        elif args.act == 'lrelu':
-            act = nn.LeakyReLU
-        elif args.act == 'prelu':
-            act = nn.PReLU
-        else:
-            raise NotImplementedError("")
-        
+        act = args.act
+
         if args.basic_module_version == 'v1':
             basic_module = SRB
         elif args.basic_module_version == 'v2':
             basic_module = ButterflyConv_v1
         elif args.basic_module_version == 'v3':
             basic_module = ButterflyConv_v2
+        elif args.basic_module_version == 'v4':
+            basic_module = ButterflyConv_v3
+        elif args.basic_module_version == 'v5':
+            basic_module = ButterflyConv_v4
         else:
             raise NotImplementedError("")
 
@@ -224,15 +368,15 @@ class RFDN(nn.Module):
 
         self.main_blocks = []
         for i in range(n_resblocks):
-            self.main_blocks.append(MainBlock(n_feats, act))
+            self.main_blocks.append(MainBlock(n_feats, act, basic_module))
         self.main_blocks = nn.Sequential(*self.main_blocks)
 
-        self.features_fusion_module = ButterflyConv(n_feats * n_resblocks, act, n_feats, 3, 1)
-
-        self.final_conv = nn.Sequential(
-            nn.Conv2d(n_feats, n_feats, 3, 1, 1),
-            act(n_feats)
+        self.features_fusion_module = nn.Sequential(
+            nn.Conv2d(n_feats * n_resblocks, n_feats, 1, 1, 0),
+            nn.LeakyReLU(inplace=True)
         )
+
+        self.final_conv = nn.Conv2d(n_feats, n_feats, 3, 1, 1)
 
         self.upsampler = nn.Sequential(
             nn.Conv2d(n_feats, n_colors * (scale * scale), 3, 1, 1),
