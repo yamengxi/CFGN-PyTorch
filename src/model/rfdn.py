@@ -409,27 +409,27 @@ class RFDN(nn.Module):
 if __name__ == '__main__':
     # test network
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
     import argparse
     args = argparse.Namespace()
-    args.scale = [2]
-    args.patch_size = 256
-    args.n_colors = 3
-    args.n_feats = 64
-    args.n_resblocks = 14
-    args.act = 'prelu'
-    args.rgb_range = 255
-    # args.basic_module_version = 'v1'
-
     # args.scale = [2]
     # args.patch_size = 256
     # args.n_colors = 3
     # args.n_feats = 64
-    # args.n_resblocks = 6
-    # args.act = 'lrelu'
+    # args.n_resblocks = 14
+    # args.act = 'prelu'
     # args.rgb_range = 255
-    # args.basic_module_version = 'v2'
+    # # args.basic_module_version = 'v1'
+
+    args.scale = [2]
+    args.patch_size = 256
+    args.n_colors = 3
+    args.n_feats = 48
+    args.n_resblocks = 6
+    args.act = 'lrelu'
+    args.rgb_range = 255
+    args.basic_module_version = 'v1'
 
     # import pdb
     # pdb.set_trace()
