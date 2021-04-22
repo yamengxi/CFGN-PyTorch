@@ -19,7 +19,7 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed')
 
 # Data specifications
-parser.add_argument('--dir_data', type=str, default='/home/liyiming/yamengxi/datasets_for_EDSR-PyTorch',
+parser.add_argument('--dir_data', type=str, default='/home/yamengxi/datasets_for_EDSR-PyTorch',
                     help='dataset directory')
 parser.add_argument('--dir_demo', type=str, default='../test',
                     help='demo image directory')
@@ -76,6 +76,8 @@ parser.add_argument('--butterfly_conv_version', type=str, default='v1',
 parser.add_argument('--skip_connection', type=bool, default=False, help='')
 parser.add_argument('--basic_module_version', type=str, default='v1',
                     help='')
+parser.add_argument('--block_type', type=str)
+
 
 # Option for Residual dense network (RDN)
 parser.add_argument('--G0', type=int, default=64,

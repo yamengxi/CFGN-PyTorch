@@ -154,7 +154,7 @@ class CFGN(nn.Module):
 
         self.head_conv = nn.Conv2d(n_colors, n_feats, 3, 1, 1)
 
-        self.head_act = activation('lrelu')
+        self.head_act = activation('identity')
 
         self.body = []
         for i in range(n_resgroups):
@@ -165,7 +165,7 @@ class CFGN(nn.Module):
             nn.Conv2d(n_feats * n_resgroups, n_feats, 1, 1, 0),
             activation('lrelu'),
             nn.Conv2d(n_feats, n_feats, 3, 1, 1),
-            activation('lrelu')
+            activation('identity')
         )
 
         self.upsampler = nn.Sequential(

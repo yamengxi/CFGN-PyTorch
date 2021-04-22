@@ -160,12 +160,12 @@
 
 
 # train Base (RFDB)
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
+CUDA_VISIBLE_DEVICES=2,3 python -u main.py --n_GPUs 2 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 48 --n_resgroups 6 --act identity --block_type base \
 --save CFGN-base_BIX2_F48R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
 
 # train Base+ACT
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
+CUDA_VISIBLE_DEVICES=6,7 python -u main.py --n_GPUs 2 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 48 --n_resgroups 6 --act lrelu --block_type base \
 --save CFGN-base+ACT_BIX2_F48R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
 
