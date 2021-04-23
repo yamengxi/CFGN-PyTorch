@@ -162,7 +162,7 @@ class CFGN(nn.Module):
         self.body = nn.Sequential(*self.body)
 
         self.features_fusion_module = nn.Sequential(
-            nn.Conv2d(n_feats * n_resgroups, n_feats, 1, 1, 0),
+            nn.Conv2d(n_feats * (n_resgroups + 1), n_feats, 1, 1, 0),
             activation('lrelu'),
             nn.Conv2d(n_feats, n_feats, 3, 1, 1),
             activation('identity')
@@ -181,7 +181,7 @@ class CFGN(nn.Module):
         x = self.head_conv(x)
 
         now = self.head_act(x)
-        outs = []
+        outs = [now]
         for main_block in self.body:
             now = main_block(now)
             outs.append(now)
