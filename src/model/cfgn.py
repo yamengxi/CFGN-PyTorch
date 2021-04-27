@@ -25,6 +25,19 @@ def activation(act_type, inplace=True, neg_slope=0.05, n_prelu=1):
         raise NotImplementedError('activation layer [{:s}] is not found'.format(act_type))
 
 
+def generate_masks(num):
+    masks = []
+    for i in range(num):
+        now = list(range(2 ** num))
+        length = 2 ** (num - i)
+        for j in range(2 ** i):
+            tmp = now[j*length:j*length+length//2]
+            now[j*length:j*length+length//2] = now[j*length+length//2:j*length+length]
+            now[j*length+length//2:j*length+length] = tmp
+        masks.append(now)
+    return torch.tensor(masks)
+
+
 class SRB(nn.Module):
     def __init__(self, in_channels):
         super(SRB, self).__init__()
@@ -37,9 +50,37 @@ class SRB(nn.Module):
         return out
 
 
-class CFGM(nn.Module):
+class CFGM_v1(nn.Module):
     def __init__(self, in_channels):
-        super(CFGM, self).__init__()
+        super(CFGM_v1, self).__init__()
+
+        self.num_conv = 0
+        for i in range(10000):
+            if 2 ** i >= in_channels:
+                self.num_conv = i
+                break
+
+        self.conv_acts = []
+        for i in range(self.num_conv * 2):
+            self.conv_acts.append(
+                nn.Sequential(
+                    nn.Conv2d(in_channels, in_channels, 3, 1, 1, 1, groups=in_channels),
+                    activation('prelu', n_prelu=in_channels)
+                )
+            )
+        self.conv_acts = nn.Sequential(*self.conv_acts)
+
+
+    def forward(self, x):
+        out = x
+        for i in range(self.num_conv):
+            out = self.conv_acts[i*2](out) + self.conv_acts[i*2+1](out)
+        return out + x
+
+
+class CFGM_v2(nn.Module):
+    def __init__(self, in_channels):
+        super(CFGM_v2, self).__init__()
 
         self.num_conv = 0
         for i in range(10000):
@@ -73,12 +114,136 @@ class CFGM(nn.Module):
         return out + x
 
 
+class ButterflyConv_v1(nn.Module):
+    def __init__(self, in_channels, act, out_channels, kernel_size, stride, dilation=1):
+        super(ButterflyConv_v1, self).__init__()
+
+        min_channels = min(in_channels, out_channels)
+        assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
+
+        if in_channels == out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Identity()
+        elif in_channels > out_channels:
+            self.head = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+            self.tail = nn.Identity()
+        elif in_channels < out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+        else:
+            raise NotImplementedError("")
+
+        self.num_butterflies = 0
+        for i in range(10000):
+            if 2 ** i == min_channels:
+                self.num_butterflies = i
+                break
+        self.masks = generate_masks(self.num_butterflies)
+
+        self.conv_acts = []
+        for i in range(self.num_butterflies * 2):
+            self.conv_acts.append(
+                nn.Sequential(
+                    nn.Conv2d(min_channels, min_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=min_channels),
+                    activation(act, n_prelu=min_channels)
+                )
+            )
+        self.conv_acts = nn.Sequential(*self.conv_acts)
+
+    def forward(self, x):
+        self.masks = self.masks.to(x.device)
+        x = self.head(x)
+
+        now = x
+        for i in range(self.num_butterflies):
+            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](torch.index_select(now, 1, self.masks[i]))
+        now = now + x
+
+        now = self.tail(now)
+        return now
+
+
+class ButterflyConv_v2(nn.Module):
+    def __init__(self, in_channels, act, out_channels, kernel_size, stride, dilation=1):
+        super(ButterflyConv_v2, self).__init__()
+
+        min_channels = min(in_channels, out_channels)
+        assert (min_channels & (min_channels - 1)) == 0 # Is min_channels = 2^n?
+
+        if in_channels == out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Identity()
+        elif in_channels > out_channels:
+            self.head = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+            self.tail = nn.Identity()
+        elif in_channels < out_channels:
+            self.head = nn.Identity()
+            self.tail = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size, stride, (kernel_size - 1) // 2 * dilation, dilation, groups=gcd(in_channels, out_channels)),
+                activation(act, n_prelu=out_channels)
+            )
+        else:
+            raise NotImplementedError("")
+
+        self.num_butterflies = 0
+        for i in range(10000):
+            if 2 ** i == min_channels:
+                self.num_butterflies = i
+                break
+        self.masks = generate_masks(self.num_butterflies)
+
+        self.conv_acts = []
+        for i in range(self.num_butterflies * 2):
+            if i % 2 == 0:
+                self.conv_acts.append(
+                    nn.Sequential(
+                        nn.Conv2d(min_channels, min_channels, kernel_size, stride, (kernel_size - 1) // 2 * 1, 1, groups=min_channels),
+                        activation(act, n_prelu=min_channels)
+                    )
+                )
+            else:
+                self.conv_acts.append(
+                    nn.Sequential(
+                        nn.Conv2d(min_channels, min_channels, kernel_size, stride, (kernel_size - 1) // 2 * 3, 3, groups=min_channels),
+                        activation(act, n_prelu=min_channels)
+                    )
+                )
+        self.conv_acts = nn.Sequential(*self.conv_acts)
+
+    def forward(self, x):
+        self.masks = self.masks.to(x.device)
+        x = self.head(x)
+
+        now = x
+        for i in range(self.num_butterflies):
+            now = self.conv_acts[i*2](now) + self.conv_acts[i*2+1](torch.index_select(now, 1, self.masks[i]))
+        now = now + x
+
+        now = self.tail(now)
+        return now
+
+
 def make_block(in_channels, block_type):
     block_type = block_type.lower()
     if block_type == 'base' or block_type == 'srb':
         return SRB(in_channels)
-    elif block_type == 'cfgm':
-        return CFGM(in_channels)
+    elif block_type == 'cfgm_v1':
+        return CFGM_v1(in_channels)
+    elif block_type == 'cfgm_v2' or block_type == 'cfgm':
+        return CFGM_v2(in_channels)
+    elif block_type == 'butterflyconv_v1':
+        return ButterflyConv_v1(in_channels, 'prelu', in_channels, 3, 1)
+    elif block_type == 'butterflyconv_v2':
+        return ButterflyConv_v2(in_channels, 'prelu', in_channels, 3, 1)
     else:
         raise NotImplementedError('block [{:s}] is not found'.format(block_type))
 
