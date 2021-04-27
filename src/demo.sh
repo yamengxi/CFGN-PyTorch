@@ -140,70 +140,70 @@
 # train RFDN
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 # --model RFDN --scale 2 --n_feats 48 --n_resblocks 6 --act lrelu --basic_module_version v1 \
-# --save RFDN_BIX2_F48R6_BMV1 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+# --save RFDN_BIX2_F48R6_BMV1 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 # --model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act prelu --basic_module_version v3 \
-# --save RFDN_BIX2_F64R8_BMV3 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+# --save RFDN_BIX2_F64R8_BMV3 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 
 
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 # --model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act prelu --basic_module_version v4 \
-# --save RFDN_BIX2_F64R8_BMV4 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+# --save RFDN_BIX2_F64R8_BMV4 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 
 # CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 # --model RFDN --scale 2 --n_feats 64 --n_resblocks 8 --act prelu --basic_module_version v5 \
-# --save RFDN_BIX2_F64R8_BMV5 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+# --save RFDN_BIX2_F64R8_BMV5 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 
 # train Base (RFDB)
 CUDA_VISIBLE_DEVICES=2,3 python -u main.py --n_GPUs 2 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 48 --n_resgroups 6 --act identity --block_type base \
---save CFGN-base_BIX2_F48R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base_BIX2_F48R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # train Base+ACT
 CUDA_VISIBLE_DEVICES=6,7 python -u main.py --n_GPUs 2 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 48 --n_resgroups 6 --act lrelu --block_type base \
---save CFGN-base+ACT_BIX2_F48R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+ACT_BIX2_F48R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # train Base+CFGM
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 8 --act identity --block_type CFGM \
---save CFGN-base+CFGM_BIX2_F64R8 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+CFGM_BIX2_F64R8 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # train Base+ACT+CFGM (CFGG)
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python -u main.py --n_GPUs 6 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 8 --act lrelu --block_type CFGM \
---save CFGN-base+ACT+CFGM_BIX2_F64R8 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+ACT+CFGM_BIX2_F64R8 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 
 
 # train Base (RFDB-L)
 CUDA_VISIBLE_DEVICES=1 python -u main.py --n_GPUs 1 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 52 --n_resgroups 6 --act identity --block_type base \
---save CFGN-base_BIX2_F52R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base_BIX2_F52R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # train Base+ACT
 CUDA_VISIBLE_DEVICES=2 python -u main.py --n_GPUs 1 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 52 --n_resgroups 6 --act lrelu --block_type base \
---save CFGN-base+ACT_BIX2_F52R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+ACT_BIX2_F52R6 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # train Base+CFGM
 CUDA_VISIBLE_DEVICES=0,1,2 python -u main.py --n_GPUs 3 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act identity --block_type CFGM \
---save CFGN-base+CFGM_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+CFGM_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100 --batch_size 64 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # train Base+ACT+CFGM (CFGN)
 CUDA_VISIBLE_DEVICES=0,1,2 python -u main.py --n_GPUs 3 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM \
---save CFGN-base+ACT+CFGM_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100 --batch_size 3 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+ACT+CFGM_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100 --batch_size 3 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 
 
 # train Base+ACT+CFGM (CFGN-L)
 CUDA_VISIBLE_DEVICES=0,1,2 python -u main.py --n_GPUs 3 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 11 --act lrelu --block_type CFGM \
---save CFGN-base+ACT+CFGM_BIX2_F64R11 --data_test Set5+Set14+B100+Urban100 --batch_size 3 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1100-1200-1300-1400-1500 --epochs 0 # --test_every 0
+--save CFGN-base+ACT+CFGM_BIX2_F64R11 --data_test Set5+Set14+B100+Urban100 --batch_size 3 --patch_size 128 --save_results --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
