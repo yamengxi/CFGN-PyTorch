@@ -21,6 +21,7 @@ class Model(nn.Module):
         self.device = torch.device('cpu' if args.cpu else 'cuda')
         self.n_GPUs = args.n_GPUs
         self.save_models = args.save_models
+        self.test_only = args.test_only
 
         module = import_module('model.' + args.model.lower())
         self.model = module.make_model(args).to(self.device)
@@ -100,6 +101,11 @@ class Model(nn.Module):
             )
 
         if load_from:
+            if not self.test_only:
+                keys = list(load_from.keys())
+                for key in keys:
+                    if key.find('upsampler') >= 0:
+                        del load_from[key]
             self.model.load_state_dict(load_from, strict=False)
 
     def forward_chop(self, *args, shave=10, min_size=160000):
