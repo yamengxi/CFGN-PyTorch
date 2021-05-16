@@ -272,7 +272,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -u main.py --n_GPUs 4 --n_threads 8 \
 
 # CFGN scale = 3
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -u main.py --n_GPUs 4 --n_threads 8 \
---model CFGN --scale 3 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --pre_train ??? \
+--model CFGN --scale 3 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --pre_train /home/Leeyegy/yamengxi/EDSR-PyTorch/experiment/model_latest.pt \
 --save CFGN_CFGM_v2+ACT_BIX3_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109 --batch_size 64 --patch_size 192 --save_results --save_models --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 # --test_every 0
 
 # CFGN scale = 4
