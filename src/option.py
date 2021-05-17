@@ -19,7 +19,7 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed')
 
 # Data specifications
-parser.add_argument('--dir_data', type=str, default='/home/Leeyegy/yamengxi/datasets_for_EDSR-PyTorch',
+parser.add_argument('--dir_data', type=str, default='/data/yamengxi/datasets_for_EDSR-PyTorch',
                     help='dataset directory')
 parser.add_argument('--dir_demo', type=str, default='../test',
                     help='demo image directory')
@@ -62,8 +62,6 @@ parser.add_argument('--res_scale', type=float, default=1,
                     help='residual scaling')
 parser.add_argument('--shift_mean', default=True,
                     help='subtract pixel mean from the input')
-parser.add_argument('--dilation', action='store_true',
-                    help='use dilated convolution')
 parser.add_argument('--precision', type=str, default='single',
                     choices=('single', 'half'),
                     help='FP precision for test (single | half)')
@@ -77,6 +75,7 @@ parser.add_argument('--skip_connection', type=bool, default=False, help='')
 parser.add_argument('--basic_module_version', type=str, default='v1',
                     help='')
 parser.add_argument('--block_type', type=str)
+parser.add_argument('--dilation', type=str)
 
 
 # Option for Residual dense network (RDN)

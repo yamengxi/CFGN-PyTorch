@@ -79,7 +79,7 @@ class CFGM_v1(nn.Module):
 
 
 class CFGM_v2(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, dilation):
         super(CFGM_v2, self).__init__()
 
         self.num_conv = 0
@@ -100,7 +100,7 @@ class CFGM_v2(nn.Module):
             else:
                 self.conv_acts.append(
                     nn.Sequential(
-                        nn.Conv2d(in_channels, in_channels, 3, 1, 3, 3, groups=in_channels),
+                        nn.Conv2d(in_channels, in_channels, 3, 1, dilation, dilation, groups=in_channels),
                         activation('prelu', n_prelu=in_channels)
                     )
                 )
@@ -232,14 +232,14 @@ class ButterflyConv_v2(nn.Module):
         return now
 
 
-def make_block(in_channels, block_type):
+def make_block(in_channels, dilation, block_type):
     block_type = block_type.lower()
     if block_type == 'base' or block_type == 'srb':
         return SRB(in_channels)
     elif block_type == 'cfgm_v1':
         return CFGM_v1(in_channels)
     elif block_type == 'cfgm_v2' or block_type == 'cfgm':
-        return CFGM_v2(in_channels)
+        return CFGM_v2(in_channels, dilation)
     elif block_type == 'butterflyconv_v1':
         return ButterflyConv_v1(in_channels, 'prelu', in_channels, 3, 1)
     elif block_type == 'butterflyconv_v2':
@@ -249,13 +249,13 @@ def make_block(in_channels, block_type):
 
 
 class MainBlock(nn.Module):
-    def __init__(self, in_channels, act, block_type):
+    def __init__(self, in_channels, act, dilation, block_type):
         super(MainBlock, self).__init__()
 
         self.num = 3
 
         self.blocks = [
-            make_block(in_channels, block_type) for _ in range(self.num)
+            make_block(in_channels, dilation, block_type) for _ in range(self.num)
         ]
         self.blocks = nn.Sequential(*self.blocks)
 
@@ -311,6 +311,7 @@ class CFGN(nn.Module):
         act = args.act
         rgb_range = args.rgb_range
         block_type = args.block_type
+        dilation = int(args.dilation)
 
         # RGB mean for DIV2K
         rgb_mean = (0.4488, 0.4371, 0.4040)
@@ -323,7 +324,7 @@ class CFGN(nn.Module):
 
         self.body = []
         for i in range(n_resgroups):
-            self.body.append(MainBlock(n_feats, act, block_type))
+            self.body.append(MainBlock(n_feats, act, dilation, block_type))
         self.body = nn.Sequential(*self.body)
 
         self.features_fusion_module = nn.Sequential(
