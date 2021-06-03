@@ -4,8 +4,8 @@ clear all; close all; clc
 
 %% set path
 degradation = 'BI'; % BI, BD
-methods = {'RCAN', 'RCANplus'};
-dataset = {'Set5'};
+methods = {'CFGN'};
+dataset = {'Set5', 'Set14', 'B100', 'Urban100', 'Manga109'};
 ext = {'*.jpg', '*.png', '*.bmp'};
 num_method = length(methods);
 num_set = length(dataset);
@@ -13,7 +13,7 @@ record_results_txt = ['PSNR_SSIM_Results_', degradation,'_model.txt'];
 results = fopen(fullfile(record_results_txt), 'wt');
 
 if strcmp(degradation, 'BI') 
-    scale_all = [2, 3, 4, 8];
+    scale_all = [3, 4];
 else
     scale_all = 3;
 end
@@ -28,25 +28,39 @@ for idx_method = 1:num_method
         for scale = scale_all
             filepaths = [];
             for idx_ext = 1:length(ext)
-                filepaths = cat(1, filepaths, dir(fullfile('./HR', dataset{idx_set}, ['x', num2str(scale)], ext{idx_ext})));
+                filepaths = cat(1, filepaths, dir(fullfile('./HR', dataset{idx_set}, ext{idx_ext})));
             end
             PSNR_all = zeros(1, length(filepaths));
             SSIM_all = zeros(1, length(filepaths));
             for idx_im = 1:length(filepaths)
                 name_HR = filepaths(idx_im).name;
-                name_SR = strrep(name_HR, 'HR', methods{idx_method});
-                im_HR = imread(fullfile('./HR', dataset{idx_set}, ['x', num2str(scale)], name_HR));
+                name_SR = strrep(name_HR, '.', ['_x', num2str(scale), '_SR.']);
+                im_HR = imread(fullfile('./HR', dataset{idx_set}, name_HR));
                 im_SR = imread(fullfile('./SR', degradation, [methods{idx_method}], dataset{idx_set}, ['x', num2str(scale)], name_SR));
                 % change channel for evaluation
-                if 3 == size(im_HR, 3)
-                    im_HR_YCbCr = single(rgb2ycbcr(im2double(im_HR)));
-                    im_HR_Y = im_HR_YCbCr(:,:,1);
-                    im_SR_YCbCr = single(rgb2ycbcr(im2double(im_SR)));
-                    im_SR_Y = im_SR_YCbCr(:,:,1);
-                else
-                    im_HR_Y = single(im2double(im_HR));
-                    im_SR_Y = single(im2double(im_SR));
+                if 1 == size(im_HR, 3)
+                    im_HR = cat(3, im_HR, im_HR, im_HR);
                 end
+
+                if 1 == size(im_SR, 3)
+                    im_SR = cat(3, im_SR, im_SR, im_SR);
+                end
+
+                im_HR_YCbCr = single(rgb2ycbcr(im2double(im_HR)));
+                im_HR_Y = im_HR_YCbCr(:,:,1);
+                im_SR_YCbCr = single(rgb2ycbcr(im2double(im_SR)));
+                im_SR_Y = im_SR_YCbCr(:,:,1);
+
+                % if 3 == size(im_HR, 3)
+                %     im_HR_YCbCr = single(rgb2ycbcr(im2double(im_HR)));
+                %     im_HR_Y = im_HR_YCbCr(:,:,1);
+                %     im_SR_YCbCr = single(rgb2ycbcr(im2double(im_SR)));
+                %     im_SR_Y = im_SR_YCbCr(:,:,1);
+                % else
+                %     im_HR_Y = single(im2double(im_HR));
+                %     im_SR_Y = single(im2double(im_SR));
+                % end
+
                 % calculate PSNR, SSIM
                 [PSNR_all(idx_im), SSIM_all(idx_im)] = Cal_Y_PSNRSSIM(im_HR_Y*255, im_SR_Y*255, scale, scale);
                 fprintf(results, 'x%d %d %s: PSNR= %f SSIM= %f\n', scale, idx_im, name_SR, PSNR_all(idx_im), SSIM_all(idx_im));
