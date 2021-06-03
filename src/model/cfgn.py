@@ -2,7 +2,6 @@ from math import gcd
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from model import common
 
@@ -23,6 +22,39 @@ def activation(act_type, inplace=True, neg_slope=0.05, n_prelu=1):
         return nn.PReLU(num_parameters=n_prelu, init=neg_slope)
     else:
         raise NotImplementedError('activation layer [{:s}] is not found'.format(act_type))
+
+
+def mean_channels(F):
+    assert(F.dim() == 4)
+    spatial_sum = F.sum(3, keepdim=True).sum(2, keepdim=True)
+    return spatial_sum / (F.size(2) * F.size(3))
+
+
+def stdv_channels(F):
+    assert(F.dim() == 4)
+    F_mean = mean_channels(F)
+    F_variance = (F - F_mean).pow(2).sum(3, keepdim=True).sum(2, keepdim=True) / (F.size(2) * F.size(3))
+    return F_variance.pow(0.5)
+
+
+# contrast-aware channel attention module
+class CCALayer(nn.Module):
+    def __init__(self, channel, reduction=8):
+        super(CCALayer, self).__init__()
+
+        self.contrast = stdv_channels
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv_du = nn.Sequential(
+            nn.Conv2d(channel, channel // reduction, 1, padding=0, bias=True),
+            activation('lrelu'),
+            nn.Conv2d(channel // reduction, channel, 1, padding=0, bias=True),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        y = self.contrast(x) + self.avg_pool(x)
+        y = self.conv_du(y)
+        return x * y
 
 
 def generate_masks(num):
@@ -276,6 +308,8 @@ class MainBlock(nn.Module):
             nn.Conv2d(in_channels * 2, in_channels, 1, 1, 0),
             activation('lrelu')
         )
+
+        self.cca = CCALayer(in_channels)
     
     def forward(self, x):
         now = x
@@ -286,6 +320,7 @@ class MainBlock(nn.Module):
         features.append(self.conv3x3(now))
         features = torch.cat(features, 1)
         out = self.conv1x1_act(features)
+        out = self.cca(out)
         return out + x
 
 
