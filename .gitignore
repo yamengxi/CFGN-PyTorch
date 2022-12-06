@@ -63,3 +63,6 @@ target/
 *.png
 *.swp
 .vscode
+
+# experiment results
+experiment/
