@@ -1,6 +1,6 @@
 --find-links https://mirror.sjtu.edu.cn/pytorch-wheels/torch_stable.html
-torch==1.12.1+cu113
-torchvision==0.13.1+cu113
+torch==1.10.2+cu111
+torchvision==0.11.3+cu111
 matplotlib
 imageio
 tqdm

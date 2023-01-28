@@ -114,25 +114,31 @@ class CFGM_v2(nn.Module):
     def __init__(self, in_channels, dilation):
         super(CFGM_v2, self).__init__()
 
-        self.num_conv = 0
-        for i in range(10000):
-            if 2 ** i >= in_channels:
-                self.num_conv = i
-                break
+        # self.num_conv = 0
+        # for i in range(10000):
+        #     if 2 ** i >= in_channels:
+        #         self.num_conv = i
+        #         break
+
+        groups = 32
+        self.num_conv = 4
+        # groups = in_channels // 8
+        # self.num_conv = self.num_conv - 5
+        print(f'in_channels:{in_channels}, num_conv: {self.num_conv}, groups: {groups}')
 
         self.conv_acts = []
         for i in range(self.num_conv * 2):
             if i % 2 == 0:
                 self.conv_acts.append(
                     nn.Sequential(
-                        nn.Conv2d(in_channels, in_channels, 3, 1, 1, 1, groups=in_channels),
+                        nn.Conv2d(in_channels, in_channels, 3, 1, 1, 1, groups=groups),
                         activation('prelu', n_prelu=in_channels)
                     )
                 )
             else:
                 self.conv_acts.append(
                     nn.Sequential(
-                        nn.Conv2d(in_channels, in_channels, 3, 1, dilation, dilation, groups=in_channels),
+                        nn.Conv2d(in_channels, in_channels, 3, 1, dilation, dilation, groups=groups),
                         activation('prelu', n_prelu=in_channels)
                     )
                 )

@@ -266,10 +266,17 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -u main.py --n_GPUs 4 --n_threads 8 \
 
 
 # train CFGN scale = 2
-CUDA_VISIBLE_DEVICES=0,1 python -u main.py --n_GPUs 2 --n_threads 4 \
+CUDA_VISIBLE_DEVICES=4,5,6,7 python -u main.py --n_GPUs 4 --n_threads 8 \
+--model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 1 \
+--save dilation=1_num_G=32_num_TFC=4_CFGN_CFGM_v2+ACT_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109 --batch_size 64 --patch_size 128 --save_results --save_models \
+--optimizer ADAM --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0
+
+
+CUDA_VISIBLE_DEVICES=3,4,5,6 python -u main.py --n_GPUs 4 --n_threads 8 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 3 \
 --save CFGN_CFGM_v2+ACT_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109 --batch_size 64 --patch_size 128 --save_results --save_models \
---optimizer ADAM --lr 0.0005 --decay 100-200-300-400-500-600 --epochs 0 # --test_every 0
+--optimizer ADAM --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0
+
 
 CUDA_VISIBLE_DEVICES=2,3 python -u main.py --n_GPUs 2 --n_threads 4 \
 --model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 3 \
@@ -326,14 +333,14 @@ CUDA_VISIBLE_DEVICES=3,6,7 python -u main.py --n_GPUs 3 --n_threads 6 \
 
 
 # test CFGN scale = 2
-CUDA_VISIBLE_DEVICES=2,3 python -u main.py --n_GPUs 2 --n_threads 4 \
---model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 3 --pre_train ??? \
---save CFGN_CFGM_v2+ACT_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109 --batch_size 64 --patch_size 128 --save_results --save_models --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 --test_only # --test_every 0
+CUDA_VISIBLE_DEVICES=7 python -u main.py --n_GPUs 1 --n_threads 2 \
+--model CFGN --scale 2 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 3 --pre_train /data2/yamengxi/CFGN/CFGN-PyTorch/final_models/CFGN_CFGM_v2+ACT_BIX2_F64R9_2023-01-08_14:35:28_model_1305.pt \
+--save final_result_dilation=3_num_G=32_num_TFC=3_CFGN_CFGM_v2+ACT_BIX2_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109+ImageNet100 --batch_size 64 --patch_size 192 --save_results --save_models --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 --test_only # --test_every 0
 
 # test CFGN scale = 3
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -u main.py --n_GPUs 4 --n_threads 8 \
---model CFGN --scale 3 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 3 --pre_train ??? \
---save CFGN_CFGM_v2+ACT_BIX3_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109 --batch_size 64 --patch_size 192 --save_results --save_models --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 --test_only # --test_every 0
+CUDA_VISIBLE_DEVICES=4 python -u main.py --n_GPUs 1 --n_threads 2 \
+--model CFGN --scale 3 --n_feats 64 --n_resgroups 9 --act lrelu --block_type CFGM_v2 --dilation 3 --pre_train /data2/yamengxi/CFGN/CFGN-PyTorch/final_models/CFGN_CFGM_v2+ACT_BIX3_F64R9_2023-01-17_10:02:03_model_787.pt \
+--save final_result_dilation=3_num_G=32_num_TFC=3_CFGN_CFGM_v2+ACT_BIX3_F64R9 --data_test Set5+Set14+B100+Urban100+Manga109 --batch_size 64 --patch_size 288 --save_results --save_models --lr 0.0005 --decay 200-400-600-800-1000-1200 --epochs 0 --test_only # --test_every 0
 
 # test CFGN scale = 4
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -u main.py --n_GPUs 4 --n_threads 8 \
