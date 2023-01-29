@@ -121,7 +121,7 @@ class CFGM_v2(nn.Module):
         #         break
 
         groups = 32
-        self.num_conv = 4
+        self.num_conv = 3
         # groups = in_channels // 8
         # self.num_conv = self.num_conv - 5
         print(f'in_channels:{in_channels}, num_conv: {self.num_conv}, groups: {groups}')

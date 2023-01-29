@@ -6,3 +6,4 @@ imageio
 tqdm
 pandas
 scikit-image
+matplotlib

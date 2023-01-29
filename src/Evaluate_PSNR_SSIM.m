@@ -4,7 +4,7 @@ clear all; close all; clc
 
 %% set path
 degradation = 'BI'; % BI, BD
-methods = {'CFGN'};
+methods = {'CFGN+'};
 dataset = {'Set5', 'Set14', 'B100', 'Urban100', 'Manga109'};
 ext = {'*.jpg', '*.png', '*.bmp'};
 num_method = length(methods);
@@ -13,7 +13,7 @@ record_results_txt = ['PSNR_SSIM_Results_', degradation,'_model.txt'];
 results = fopen(fullfile(record_results_txt), 'wt');
 
 if strcmp(degradation, 'BI') 
-    scale_all = [3, 4];
+    scale_all = [2, 3, 4];
 else
     scale_all = 3;
 end
